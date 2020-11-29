@@ -59,3 +59,69 @@ class Person(Robot):
 class StaticRobot(Robot):
     def action(self, perception):
         return Action.Stay
+
+class ReactiveRobot(Robot):
+    def find_path(self, env, cell):
+        n, m = env.n, env.m
+        x, y = self.x, self.y
+        queue = [(x, y)]
+        parent = {(x, y): (x, y)}
+        for it in range(n * m):
+            try:
+                x, y = queue[it]
+            except IndexError:
+                break
+
+            for d1, d2 in zip(dx[:4], dy[:4]):
+                pos = (i, j) = (x + d1, y + d2)
+                if (pos not in parent) and (0 <= i < n) and (0 <= j < m):
+                    if (env.cells[i][j] <= Cell.Playpen):
+                        queue.append(pos)
+                        parent[pos] = (x, y)
+                    if env.cells[i][j] == cell:
+                        path = [pos, (x, y)]
+                        while True:
+                            last = path[-1]
+                            plast = parent[last]
+                            if last != plast:
+                                path.append(plast)
+                            else:
+                                return path
+
+    def action(self, perception):
+        x, y = self.x, self.y
+        cell = perception.cells[x][y]
+
+        if cell == Cell.Dirt: return Action.Clean
+
+        if not self.baby:
+            path = self.find_path(perception, Cell.Baby)
+            if path:
+                i, j = path[-2]
+                dif = (i - x, j - y)
+                act, = (t for t, d in enumerate(zip(dx, dy)) if d == dif)
+                return Action(act)
+
+        if self.baby:
+            if cell == Cell.Playpen: return Action.Drop
+            path = self.find_path(perception, Cell.Playpen)
+            if path:
+                i, j = path[-2]
+                dif = (i - x, j - y)
+                act, = (t for t, d in enumerate(zip(dx, dy)) if d == dif)
+                try:
+                    ii, jj = path[-3]
+                    dif2 = (ii - x, jj - y)
+                    act2, = (t for t, d in enumerate(zip(dx[act::4], dy[act::4])) if d == dif2)
+                    return Action(act + 4 * act2)
+                except IndexError:
+                    return Action(act)
+
+        path = self.find_path(perception, Cell.Dirt)
+        if path:
+            i, j = path[-2]
+            dif = (i - x, j - y)
+            act, = (t for t, d in enumerate(zip(dx, dy)) if d == dif)
+            return Action(act)
+
+        return Action.Stay
