@@ -82,7 +82,7 @@ class KinderGarden:
             if (x, y) != (i, j) and (0 < x < self.n - 1) and (0 < y < self.m - 1):
                 patch = [(x, y)] + [(x + d1, y + d2) for d1, d2 in zip(dx[:8], dy[:8])]
                 nbs = 2 * sum(1 for x1, x2 in patch if self.cells[x1][x2] == Cell.Baby) - 1
-                dirts = min(int(expovariate(1/nbs)), nbs)
+                dirts = min(int(expovariate(3/2)), nbs)
                 patch = [(x1, x2) for x1, x2 in patch if self.cells[x1][x2] == Cell.Free]
                 shuffle(patch)
                 for (x1, x2), _ in zip(patch, range(dirts)):
@@ -90,15 +90,11 @@ class KinderGarden:
         elif action != Action.Stay:
             assert False, f'Bad Move: {baby}-> {repr(action)}'
 
-    def variate(self):
-        counts = [0] * len(Cell)
+    def variate(self, counts=None):
         set_babies = [baby for baby in self.babies if self.cells[baby.x][baby.y] == Cell.SetBaby]
         free_babies = [baby for baby in self.babies if self.cells[baby.x][baby.y] == Cell.Baby]
 
-        for row in self.cells:
-            for cell in row:
-                counts[cell] += 1
-        
+        if not counts: counts = self.get_stats()       
         self.cells = [[Cell.Free] * self.m for _ in range(self.n)]
         playpen = [(randint(0, self.n-1), randint(0, self.m-1))]
         for pos, _ in enumerate(self.babies):
@@ -130,9 +126,16 @@ class KinderGarden:
             self.cells[i][j] = Cell.Robot if self.cells[i][j] == Cell.Free else self.cells[i][j]
             robot.set(i, j)
 
+    def get_stats(self):
+        counts = [0] * len(Cell)
+        for row in self.cells:
+            for cell in row:
+                counts[cell] += 1
+        return counts
 
     def simulate(self, iters=100, verbose=True):
         if verbose: print(f'Start environtment:', self, sep='\n')
+        dirt_percents = []
         for ti in range(iters):
             for tj in range(self.t):
                 if verbose: print(f'Turn: {ti * iters + tj}')
@@ -143,9 +146,17 @@ class KinderGarden:
                 for baby in self.babies:
                     act = baby.action(self)
                     self.action_baby(baby, act)
+
                 if verbose: print(self)
-            self.variate()
+                
+                counts = self.get_stats()
+                dp = counts[Cell.Dirt] / (counts[Cell.Dirt] + counts[Cell.Free])
+                dirt_percents.append(dp)
+                if dp > 0.4:
+                    return -1, sum(dirt_percents)/len(dirt_percents)
+            self.variate(counts=counts)
             if verbose: print(f'Varaition: {ti}', self, sep='\n')
+        return int(counts[Cell.Dirt] == counts[Cell.Dirt] == 0), sum(dirt_percents)/len(dirt_percents)
 
 
     def __str__(self):
