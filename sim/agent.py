@@ -97,11 +97,12 @@ class Kangaroo(Robot):
             if cell == Cell.Playpen: return Action.Drop
             direct = self.get_direction_to(perception, Cell.Playpen, doble_steep=True)
             if direct: return direct
-        else:
+        
+        if not self.baby:
             direct = self.get_direction_to(perception, Cell.Baby)
             if direct: return direct
             
-        direct = self.get_direction_to(perception, Cell.Dirt)
+        direct = self.get_direction_to(perception, Cell.Dirt, doble_steep=self.baby is not None)
         if direct: return direct
         
         return Action.Stay
@@ -117,12 +118,12 @@ class Cleaner(Robot):
             if cell == Cell.Playpen: return Action.Drop
             direct = self.get_direction_to(perception, Cell.Playpen, doble_steep=True)
             if direct: return direct
-        else:
-            direct = self.get_direction_to(perception, Cell.Dirt)
-            if direct: return direct
+               
+        direct = self.get_direction_to(perception, Cell.Dirt, doble_steep=self.baby is not None)
+        if direct: return direct
         
+        if not self.baby:
             direct = self.get_direction_to(perception, Cell.Baby)
             if direct: return direct
-            
-        
+         
         return Action.Stay
