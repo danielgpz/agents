@@ -82,7 +82,7 @@ class KinderGarden:
             if (x, y) != (i, j) and (0 < x < self.n - 1) and (0 < y < self.m - 1):
                 patch = [(x, y)] + [(x + d1, y + d2) for d1, d2 in zip(dx[:8], dy[:8])]
                 nbs = 2 * sum(1 for x1, x2 in patch if self.cells[x1][x2] == Cell.Baby) - 1
-                dirts = min(int(expovariate(3/2)), nbs)
+                dirts = min(int(expovariate(1)), nbs)
                 patch = [(x1, x2) for x1, x2 in patch if self.cells[x1][x2] == Cell.Free]
                 shuffle(patch)
                 for (x1, x2), _ in zip(patch, range(dirts)):
@@ -152,11 +152,13 @@ class KinderGarden:
                 counts = self.get_stats()
                 dp = counts[Cell.Dirt] / (counts[Cell.Dirt] + counts[Cell.Free])
                 dirt_percents.append(dp)
-                if dp > 0.4:
+                if dp > 0.6:
                     return -1, sum(dirt_percents)/len(dirt_percents)
+                if counts[Cell.SetBaby] == len(self.babies) and dp == 0:
+                    return 1, sum(dirt_percents)/len(dirt_percents)
             self.variate(counts=counts)
             if verbose: print(f'Varaition: {ti}', self, sep='\n')
-        return int(counts[Cell.Dirt] == counts[Cell.Dirt] == 0), sum(dirt_percents)/len(dirt_percents)
+        return int(counts[Cell.SetBaby] == len(self.babies) and dp < 0.4), sum(dirt_percents)/len(dirt_percents)
 
 
     def __str__(self):
